@@ -1,5 +1,11 @@
 package service
 
+// TODO:
+// 1. When discovered a tx decrease from safe amount
+// 1.1 if tx is rollback increase safe amount
+// 2. x seconds after consensus increase safe amount
+//
+
 import (
 	"bytes"
 	"encoding/json"
@@ -246,7 +252,11 @@ func (service *transactionService) updateBalances() {
 		dtStart := time.Now()
 		fmt.Println("[updateBalances][iteration start] " + strconv.Itoa(iteration))
 		iteration = iteration + 1
-		err := service.updateBalancesIteration()
+		var err = service.updateBalancesIteration(false)
+		if err != nil {
+			fmt.Println(err)
+		}
+		err = service.updateBalancesIteration(true)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -264,12 +274,13 @@ func (service *transactionService) updateBalances() {
 	}
 }
 
-func (service *transactionService) updateBalancesIteration() error {
+func (service *transactionService) updateBalancesIteration(updateSafeIncrease bool) error {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("error in updateBalancesIteration")
 		}
 	}()
+	interval := os.Getenv("AMOUNT_OF_SECONDS_FOR_SAFE_BALANCE")
 	err := dbProvider.DB.Transaction(func(dbTransaction *gorm.DB) (err error) {
 		var appState entities.AppState
 		err = dbTransaction.Clauses(clause.Locking{Strength: "UPDATE"}).Where("name = ?", entities.UpdateBalances).First(&appState).Error
@@ -278,6 +289,7 @@ func (service *transactionService) updateBalancesIteration() error {
 		}
 
 		var txs []entities.Transaction
+		var txsToUpdate []entities.Transaction
 		var ffbts []entities.FullnodeFeeBaseTransaction
 		var nfbts []entities.NetworkFeeBaseTransaction
 		var rbts []entities.ReceiverBaseTransaction
@@ -288,7 +300,13 @@ func (service *transactionService) updateBalancesIteration() error {
 		var tmbtServiceData []entities.TokenMintingServiceData
 
 		// get all transaction with consensus and not processed
-		err = dbTransaction.Where("`isProcessed` = 0 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend'").Limit(3000).Find(&txs).Error
+		query := ""
+		if updateSafeIncrease {
+			query = "`isProcessed` = 1 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend' AND FROM_UNIXTIME(transactionConsensusUpdateTime) < NOW() - INTERVAL " + interval + " SECOND AND IsSafeBalanceIncreased = 0 "
+		} else {
+			query = "`isProcessed` = 0 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend' AND 'IsSafeBalanceIncreased' = 0 "
+		}
+		err = dbTransaction.Where(query).Limit(3000).Find(&txs).Error
 		if err != nil {
 			return err
 		}
@@ -301,10 +319,21 @@ func (service *transactionService) updateBalancesIteration() error {
 			txIdToAttachmentTime[tx.ID] = tx.AttachmentTime
 		}
 		var transactionIds []int32
-		for i, v := range txs {
-			txs[i].IsProcessed = true
+		if updateSafeIncrease {
+			// TODO Update all txs to IsSafeBalanceIncreased = true
+			for i, _ := range txs {
+				txs[i].IsSafeBalanceIncreased = true
+				txsToUpdate = append(txsToUpdate, txs[i])
+			}
+		} else {
+			for i, _ := range txs {
+				txs[i].IsProcessed = true
+			}
+		}
+		for _, v := range txs {
 			transactionIds = append(transactionIds, v.ID)
 		}
+
 		err = dbTransaction.Where(map[string]interface{}{"transactionId": transactionIds}).Find(&ffbts).Error
 		if err != nil {
 			return err
@@ -336,6 +365,12 @@ func (service *transactionService) updateBalancesIteration() error {
 		err = dbTransaction.Save(&txs).Error
 		if err != nil {
 			return err
+		}
+		if len(txsToUpdate) > 0 {
+			err = dbTransaction.Save(&txsToUpdate).Error
+			if err != nil {
+				return err
+			}
 		}
 
 		var tmbtIds []int32
@@ -421,7 +456,7 @@ func (service *transactionService) updateBalancesIteration() error {
 			addressBalanceDiffMap[key] = addressBalanceDiffMap[key].Add(serviceData.MintingAmount)
 		}
 
-		err = updateBalances(dbTransaction, currencyHashUniqueArray, addressBalanceDiffMap)
+		err = updateBalances(dbTransaction, currencyHashUniqueArray, addressBalanceDiffMap, updateSafeIncrease)
 		if err != nil {
 			return err
 		}
@@ -447,7 +482,7 @@ func appendTransactionCurrency(txId int32, attachmentTime decimal.Decimal, curre
 	}
 }
 
-func updateBalances(dbTransaction *gorm.DB, currencyHashUniqueArray []string, addressBalanceDiffMap map[string]decimal.Decimal) (err error) {
+func updateBalances(dbTransaction *gorm.DB, currencyHashUniqueArray []string, addressBalanceDiffMap map[string]decimal.Decimal, updateSafeIncrease bool) (err error) {
 	// get all currency that have currency hash
 	currenciesEntities := make([]entities.Currency, len(currencyHashUniqueArray))
 	err = dbTransaction.Where(map[string]interface{}{"hash": currencyHashUniqueArray}).Find(&currenciesEntities).Error
@@ -494,23 +529,32 @@ func updateBalances(dbTransaction *gorm.DB, currencyHashUniqueArray []string, ad
 		for _, ab := range addressBalancesToUpdate {
 			mapIdToAddressBalance[ab.ID] = ab
 		}
-		var modifiedAddressBalancesToUpdate []entities.AddressBalance
+
+		var modifierAddressBalancesToUpdateSafeIncrease []entities.AddressBalance
 		for _, adr := range updateBalanceResponseArray {
 			// get balance diff by identifier
 			balanceDiff := addressBalanceDiffMap[adr.Identifier]
 			// get balanceToUpdate by id
 			balanceToUpdate := mapIdToAddressBalance[adr.Id]
-			// update balance
-			balanceToUpdate.Amount = balanceToUpdate.Amount.Add(balanceDiff)
-			modifiedAddressBalancesToUpdate = append(modifiedAddressBalancesToUpdate, balanceToUpdate)
+			if !updateSafeIncrease {
+				if balanceDiff.IsNegative() {
+					balanceToUpdate.SafeAmount = balanceToUpdate.SafeAmount.Add(balanceDiff)
+				}
+				// update balance
+				balanceToUpdate.Amount = balanceToUpdate.Amount.Add(balanceDiff)
+			}
+			if updateSafeIncrease && balanceDiff.IsPositive() {
+				balanceToUpdate.SafeAmount = balanceToUpdate.SafeAmount.Add(balanceDiff)
+			}
+			modifierAddressBalancesToUpdateSafeIncrease = append(modifierAddressBalancesToUpdateSafeIncrease, balanceToUpdate)
 			// remove from diff map
 			delete(addressBalanceDiffMap, adr.Identifier)
-
 		}
-		if err := dbTransaction.Save(&modifiedAddressBalancesToUpdate).Error; err != nil {
-			return err
+		if len(modifierAddressBalancesToUpdateSafeIncrease) > 0 {
+			if err := dbTransaction.Save(&modifierAddressBalancesToUpdateSafeIncrease).Error; err != nil {
+				return err
+			}
 		}
-
 	}
 	var addressBalancesToCreate []entities.AddressBalance
 	for k, balanceDiff := range addressBalanceDiffMap {
@@ -518,6 +562,12 @@ func updateBalances(dbTransaction *gorm.DB, currencyHashUniqueArray []string, ad
 		currencyId := currencyHashToIdMap[tb.CurrencyHash]
 		// create a new address balance
 		addressBalance := entities.NewAddressBalance(tb.AddressHash, balanceDiff, currencyId)
+		if !updateSafeIncrease && balanceDiff.IsNegative() {
+			addressBalance.SafeAmount = balanceDiff
+		}
+		if updateSafeIncrease {
+			addressBalance.SafeAmount = balanceDiff
+		}
 		addressBalancesToCreate = append(addressBalancesToCreate, *addressBalance)
 	}
 

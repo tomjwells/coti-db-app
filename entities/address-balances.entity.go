@@ -11,6 +11,7 @@ type AddressBalance struct {
 	CurrencyId  int32           `json:"currencyId" gorm:"column:currencyId;type:int(11) NOT NULL"`
 	AddressHash string          `json:"addressHash" gorm:"column:addressHash;type:varchar(200) COLLATE utf8_unicode_ci NOT NULL;index:addressHash_INDEX"`
 	Amount      decimal.Decimal `json:"amount" gorm:"column:amount;type:decimal(25,10) NOT NULL"`
+	SafeAmount  decimal.Decimal `json:"safeAmount" gorm:"column:safeAmount;type:decimal(25,10) NOT NULL"`
 	CreateTime  time.Time       `json:"createTime" gorm:"column:createTime;type:timestamp NOT NULL;default:CURRENT_TIMESTAMP;"`
 	UpdateTime  time.Time       `json:"updateTime" gorm:"column:updateTime;type:timestamp NOT NULL;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"`
 }
