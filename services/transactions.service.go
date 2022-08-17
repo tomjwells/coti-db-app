@@ -320,9 +320,9 @@ func (service *transactionService) updateBalancesIteration(updateType AddressBal
 		if updateType == SafeIncreaseBalanceUpdate {
 			query = "isProcessed = 1 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend' AND FROM_UNIXTIME(transactionConsensusUpdateTime) < NOW() - INTERVAL " + interval + " SECOND AND IsSafeBalanceIncreased = 0 "
 		} else if updateType == SafeDecreaseBalanceUpdate {
-			query = "isProcessed = 0 AND transactionConsensusUpdateTime IS NULL AND type <> 'ZeroSpend' AND IsSafeBalanceIncreased = 0 "
+			query = "isProcessed = 0 AND transactionConsensusUpdateTime IS NULL AND type <> 'ZeroSpend' AND IsSafeBalanceDecrease = 0 "
 		} else if updateType == RegularBalanceUpdate {
-			query = "isProcessed = 0 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend' AND IsSafeBalanceIncreased = 0 "
+			query = "isProcessed = 0 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend' "
 		}
 		err = dbTransaction.Where(query).Limit(3000).Find(&txs).Error
 		if err != nil {
@@ -345,12 +345,13 @@ func (service *transactionService) updateBalancesIteration(updateType AddressBal
 				if err != nil {
 					return err
 				}
-				if int64(txConsensusUpdateTime)+(1000*intervalInt)*1000 < time.Now().UnixMilli() {
+				if (int64(txConsensusUpdateTime)+(1000*intervalInt))*1000 < time.Now().Unix()*1000 {
 					txIdToIsIncreaseSafeAmount[txs[i].ID] = true
 					txs[i].IsSafeBalanceIncreased = true
-				} else {
-					print('e')
+					txs[i].IsSafeBalanceDecrease = true
 				}
+			} else if updateType == SafeDecreaseBalanceUpdate {
+				txs[i].IsSafeBalanceDecrease = true
 			}
 			transactionIds = append(transactionIds, v.ID)
 			txIdToAttachmentTime[txs[i].ID] = txs[i].AttachmentTime
@@ -711,8 +712,6 @@ func updateRegularBalance(dbTransaction *gorm.DB, updateBalanceResponseArray []U
 			balanceToUpdate.Amount = balanceToUpdate.Amount.Add(balanceDiff)
 			if addressCurrencyToIsIncreaseAllow[adr.Identifier] {
 				balanceToUpdate.SafeAmount = balanceToUpdate.SafeAmount.Add(balanceDiff)
-			} else {
-				print('e')
 			}
 			modifierAddressBalancesToUpdateSafeIncrease = append(modifierAddressBalancesToUpdateSafeIncrease, balanceToUpdate)
 			// remove from diff map
@@ -732,8 +731,6 @@ func updateRegularBalance(dbTransaction *gorm.DB, updateBalanceResponseArray []U
 		addressBalance := entities.NewAddressBalance(tb.AddressHash, balanceDiff, currencyId)
 		if addressCurrencyToIsIncreaseAllow[k] {
 			addressBalance.SafeAmount = balanceDiff
-		} else {
-			print('e')
 		}
 		addressBalancesToCreate = append(addressBalancesToCreate, *addressBalance)
 	}
