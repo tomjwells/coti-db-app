@@ -260,7 +260,6 @@ func (service *transactionService) updateBalances() {
 	for {
 		dtStart := time.Now()
 		fmt.Println("[updateBalances][iteration start] " + strconv.Itoa(iteration))
-		iteration = iteration + 1
 		var err = service.updateBalancesIteration(RegularBalanceUpdate)
 		if err != nil {
 			fmt.Println(err)
@@ -275,6 +274,7 @@ func (service *transactionService) updateBalances() {
 		}
 
 		fmt.Println("[updateBalances][iteration end] " + strconv.Itoa(iteration))
+		iteration = iteration + 1
 		dtEnd := time.Now()
 		diff := dtEnd.Sub(dtStart)
 		diffInSeconds := diff.Seconds()
