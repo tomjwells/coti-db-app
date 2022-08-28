@@ -124,7 +124,7 @@ func loadClusterStamp() {
 			panic(err)
 		}
 		fmt.Println("Successfully Opened CSV file")
-		defer csvFile.Close()
+		defer fileClose(csvFile)
 
 		reader := csv.NewReader(csvFile)
 
@@ -178,5 +178,12 @@ func loadClusterStamp() {
 			panic(err)
 		}
 
+	}
+}
+
+func fileClose(csvFile *os.File) {
+	err := csvFile.Close()
+	if err != nil {
+		panic(err)
 	}
 }
