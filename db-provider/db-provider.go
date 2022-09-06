@@ -71,12 +71,16 @@ func migrateDb(dbName string, dbUser string, dbHost string, dbPort string, dbPas
 	}
 
 	// Migrate the schema
-	db.AutoMigrate(&entities.AppState{}, &entities.Currency{}, &entities.Transaction{}, &entities.FullnodeFeeBaseTransaction{},
+	autoMigrateError := db.AutoMigrate(&entities.AppState{}, &entities.Currency{}, &entities.Transaction{}, &entities.FullnodeFeeBaseTransaction{},
 		&entities.InputBaseTransaction{}, &entities.NetworkFeeBaseTransaction{}, &entities.ReceiverBaseTransaction{}, &entities.AddressBalance{},
 		&entities.CurrencyTypeData{}, &entities.OriginatorCurrencyData{}, &entities.TokenGenerationFeeBaseTransaction{}, &entities.TokenMintingFeeBaseTransaction{},
 		&entities.TokenMintingServiceData{}, &entities.TokenGenerationServiceData{}, &entities.EventInputBaseTransaction{}, &entities.AddressTransactionCount{},
 		&entities.TransactionAddress{}, &entities.Address{}, &entities.TransactionCurrency{},
 	)
+	if autoMigrateError != nil {
+		panic(autoMigrateError)
+	}
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		panic(err)
