@@ -149,7 +149,7 @@ func loadClusterStamp() {
 
 				addressBalances = append(addressBalances, *addressBalance)
 				recordsToSaveCounter += 1
-				if recordsToSaveCounter == 1000 {
+				if recordsToSaveCounter == 200 {
 					err = dbTransaction.Save(addressBalances).Error
 					if err != nil {
 						return err
