@@ -14,8 +14,8 @@ type Transaction struct {
 	Amount                         decimal.Decimal     `json:"amount" gorm:"column:amount;type:decimal(25,10) NOT NULL"`
 	AttachmentTime                 decimal.Decimal     `json:"attachmentTime" gorm:"column:attachmentTime;type:decimal(20,6) NOT NULL;index:attachmentTime_INDEX"`
 	IsValid                        sql.NullBool        `json:"isValid" gorm:"column:isValid;type:tinyint(4) DEFAULT NULL"`
-	IsSafeBalanceIncreased         bool                `json:"isSafeBalanceIncreased" gorm:"column:IsSafeBalanceIncreased;type:tinyint(4) DEFAULT NULL"`
-	IsSafeBalanceDecrease          bool                `json:"isSafeBalanceDecrease" gorm:"column:IsSafeBalanceDecrease;type:tinyint(4) DEFAULT NULL"`
+	IsSafeBalanceIncreased         bool                `json:"isSafeBalanceIncreased" gorm:"column:IsSafeBalanceIncreased;type:tinyint(4) DEFAULT NULL;index:isSafeBalanceIncreased_INDEX"`
+	IsSafeBalanceDecrease          bool                `json:"isSafeBalanceDecrease" gorm:"column:IsSafeBalanceDecrease;type:tinyint(4) DEFAULT NULL;index:isSafeBalanceDecrease_INDEX"`
 	TransactionCreateTime          decimal.Decimal     `json:"transactionCreateTime" gorm:"column:transactionCreateTime;type:decimal(20,6) NOT NULL"`
 	LeftParentHash                 *string             `json:"leftParentHash" gorm:"column:leftParentHash;type:varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL"`
 	RightParentHash                *string             `json:"rightParentHash" gorm:"column:rightParentHash;type:varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL"`
