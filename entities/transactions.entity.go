@@ -24,7 +24,7 @@ type Transaction struct {
 	SenderTrustScore               float64             `json:"senderTrustScore" gorm:"column:senderTrustScore;type:decimal(25,10) NOT NULL"`
 	TransactionConsensusUpdateTime decimal.NullDecimal `json:"transactionConsensusUpdateTime" gorm:"column:transactionConsensusUpdateTime;type:decimal(20,6);index:composite_INDEX,priority:3;index:transactionConsensusUpdateTime_INDEX"`
 	TransactionDescription         *string             `json:"transactionDescription" gorm:"column:transactionDescription;type:varchar(500) COLLATE utf8_unicode_ci DEFAULT NULL"`
-	TrustChainConsensus            bool                `json:"trustChainConsensus" gorm:"column:trustChainConsensus;type:tinyint(4) DEFAULT NULL"`
+	TrustChainConsensus            bool                `json:"trustChainConsensus" gorm:"column:trustChainConsensus;type:tinyint(4) DEFAULT NULL;index:trustChainConsensus_INDEX"`
 	TrustChainTrustScore           decimal.Decimal     `json:"trustChainTrustScore" gorm:"column:trustChainTrustScore;type:decimal(25,10) NOT NULL"`
 	Type                           *string             `json:"type" gorm:"column:type;type:varchar(100) COLLATE utf8_unicode_ci NOT NULL;index:type_INDEX;index:composite_INDEX,priority:2"`
 	IsProcessed                    bool                `json:"isProcessed" gorm:"column:isProcessed;type:tinyint(4) DEFAULT false;index:isProcessed_INDEX;index:composite_INDEX,priority:1"`
