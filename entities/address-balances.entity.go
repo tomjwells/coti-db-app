@@ -20,15 +20,17 @@ func NewAddressBalanceFromClusterStamp(clusterStampDataRow *dto.ClusterStampData
 	instance := new(AddressBalance)
 	instance.AddressHash = clusterStampDataRow.Address
 	instance.Amount = clusterStampDataRow.Amount
+	instance.SafeAmount = clusterStampDataRow.Amount
 	instance.CurrencyId = clusterStampDataRow.CurrencyId
 
 	return instance
 }
 
-func NewAddressBalance(address string, amount decimal.Decimal, currencyId int32) *AddressBalance {
+func NewAddressBalance(address string, amount decimal.Decimal, safeAmount decimal.Decimal, currencyId int32) *AddressBalance {
 	instance := new(AddressBalance)
 	instance.AddressHash = address
 	instance.Amount = amount
+	instance.SafeAmount = safeAmount
 	instance.CurrencyId = currencyId
 
 	return instance

@@ -626,15 +626,15 @@ func updateDbBalance(dbTransaction *gorm.DB, currentAddressBalanceDiffMap map[st
 			return err
 		}
 		var mapIdToAddressBalance = make(map[int32]entities.AddressBalance)
-		for _, ab := range addressBalancesToUpdate {
-			mapIdToAddressBalance[ab.ID] = ab
+		for _, addressBalance := range addressBalancesToUpdate {
+			mapIdToAddressBalance[addressBalance.ID] = addressBalance
 		}
 		var modifierAddressBalancesToUpdateSafeIncrease []entities.AddressBalance
-		for _, adr := range updateBalanceResponseArray {
+		for _, addressBalanceResponse := range updateBalanceResponseArray {
 			// get balance diff by identifier
-			balanceDiff := currentAddressBalanceDiffMap[adr.Identifier]
+			balanceDiff := currentAddressBalanceDiffMap[addressBalanceResponse.Identifier]
 			// get balanceToUpdate by id
-			balanceToUpdate := mapIdToAddressBalance[adr.Id]
+			balanceToUpdate := mapIdToAddressBalance[addressBalanceResponse.Id]
 			if isSafeAmount {
 				balanceToUpdate.SafeAmount = balanceToUpdate.SafeAmount.Add(balanceDiff)
 			} else {
@@ -643,7 +643,7 @@ func updateDbBalance(dbTransaction *gorm.DB, currentAddressBalanceDiffMap map[st
 
 			modifierAddressBalancesToUpdateSafeIncrease = append(modifierAddressBalancesToUpdateSafeIncrease, balanceToUpdate)
 			// remove from diff map
-			delete(currentAddressBalanceDiffMap, adr.Identifier)
+			delete(currentAddressBalanceDiffMap, addressBalanceResponse.Identifier)
 		}
 		if len(modifierAddressBalancesToUpdateSafeIncrease) > 0 {
 			if err := dbTransaction.Save(&modifierAddressBalancesToUpdateSafeIncrease).Error; err != nil {
@@ -652,11 +652,18 @@ func updateDbBalance(dbTransaction *gorm.DB, currentAddressBalanceDiffMap map[st
 		}
 	}
 	var addressBalancesToCreate []entities.AddressBalance
-	for k, balanceDiff := range currentAddressBalanceDiffMap {
-		tb := newTokenBalanceFromString(k)
-		currencyId := currencyHashToIdMap[tb.CurrencyHash]
+	for identifier, balanceDiff := range currentAddressBalanceDiffMap {
+		tokenBalance := newTokenBalanceFromString(identifier)
+		currencyId := currencyHashToIdMap[tokenBalance.CurrencyHash]
+		amount := decimal.Zero
+		safeAmount := decimal.Zero
+		if isSafeAmount {
+			safeAmount = balanceDiff
+		} else {
+			amount = balanceDiff
+		}
 		// create a new address balance
-		addressBalance := entities.NewAddressBalance(tb.AddressHash, balanceDiff, currencyId)
+		addressBalance := entities.NewAddressBalance(tokenBalance.AddressHash, amount, safeAmount, currencyId)
 		addressBalancesToCreate = append(addressBalancesToCreate, *addressBalance)
 	}
 	if len(addressBalancesToCreate) > 0 {
