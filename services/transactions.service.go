@@ -159,18 +159,18 @@ func (service *transactionService) monitorSyncStatus() {
 	iteration := 0
 	for {
 		dtStart := time.Now()
-		fmt.Println("[monitorSyncStatus][iteration start] " + strconv.Itoa(iteration))
+		log.Println("[monitorSyncStatus][iteration start] " + strconv.Itoa(iteration))
 		iteration = iteration + 1
 		err := service.monitorSyncStatusIteration()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
-		fmt.Println("[monitorSyncStatus][iteration end] " + strconv.Itoa(iteration))
+		log.Println("[monitorSyncStatus][iteration end] " + strconv.Itoa(iteration))
 		dtEnd := time.Now()
 		diff := dtEnd.Sub(dtStart)
 		diffInSeconds := diff.Seconds()
 		timeDurationToSleep := time.Duration(float64(10) - diffInSeconds)
-		fmt.Println("[monitorSyncStatus][sleeping for] ", timeDurationToSleep)
+		log.Println("[monitorSyncStatus][sleeping for] ", timeDurationToSleep)
 		time.Sleep(timeDurationToSleep * time.Second)
 		iteration += 1
 	}
@@ -187,11 +187,11 @@ func (service *transactionService) monitorSyncStatusIteration() error {
 	isMainNodeError := mainNodeRes.Error != nil || mainNodeRes.Tran.Status == "error"
 	isBackupNodeError := backupNodeRes.Error != nil || backupNodeRes.Tran.Status == "error"
 	if isMainNodeError && isBackupNodeError {
-		log.Println("Main fullnode and backup fullnode could not get last index")
+		log.Println("[monitorSyncStatusIteration][Main fullnode and backup fullnode could not get last index]")
 		service.syncHistory.IsSynced = false
 
 	} else if isMainNodeError {
-		log.Println("Main fullnode could not get last index")
+		log.Println("[monitorSyncStatusIteration][Main fullnode could not get last index]")
 		service.syncHistory.IsSynced = false
 	} else {
 		if mainNodeRes.Tran.LastIndex >= backupNodeRes.Tran.LastIndex && service.lastIterationIndex >= mainNodeRes.Tran.LastIndex-100 {
@@ -229,20 +229,20 @@ func (service *transactionService) cleanUnindexedTransaction() {
 	iteration := 0
 	for {
 		dtStart := time.Now()
-		fmt.Println("[cleanUnindexedTransaction][iteration start] " + strconv.Itoa(iteration))
+		log.Println("[cleanUnindexedTransaction][iteration start] " + strconv.Itoa(iteration))
 		iteration = iteration + 1
 		err := service.cleanUnindexedTransactionIteration()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 
-		fmt.Println("[cleanUnindexedTransaction][iteration end] " + strconv.Itoa(iteration))
+		log.Println("[cleanUnindexedTransaction][iteration end] " + strconv.Itoa(iteration))
 		dtEnd := time.Now()
 		diff := dtEnd.Sub(dtStart)
 		diffInSeconds := diff.Seconds()
 		if diffInSeconds < interval && diffInSeconds > 0 {
 			timeDurationToSleep := time.Duration(interval - diffInSeconds)
-			fmt.Println("[cleanUnindexedTransaction][sleeping for] ", timeDurationToSleep)
+			log.Println("[cleanUnindexedTransaction][sleeping for] ", timeDurationToSleep)
 			time.Sleep(timeDurationToSleep * time.Second)
 
 		}
@@ -259,28 +259,28 @@ func (service *transactionService) updateBalances() {
 	iteration := 0
 	for {
 		dtStart := time.Now()
-		fmt.Println("[updateBalances][iteration start] " + strconv.Itoa(iteration))
+		log.Println("[updateBalances][iteration start] " + strconv.Itoa(iteration))
 		var err = service.updateBalancesIteration(RegularBalanceUpdate)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		err = service.updateBalancesIteration(SafeBalanceIncreaseUpdate)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		err = service.updateBalancesIteration(SafeBalanceDecreaseUpdate)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 
-		fmt.Println("[updateBalances][iteration end] " + strconv.Itoa(iteration))
+		log.Println("[updateBalances][iteration end] " + strconv.Itoa(iteration))
 		iteration = iteration + 1
 		dtEnd := time.Now()
 		diff := dtEnd.Sub(dtStart)
 		diffInSeconds := diff.Seconds()
 		if diffInSeconds < interval && diffInSeconds > 0 {
 			timeDurationToSleep := time.Duration(interval - diffInSeconds)
-			fmt.Println("[updateBalances][sleeping for] ", timeDurationToSleep)
+			log.Println("[updateBalances][sleeping for] ", timeDurationToSleep)
 			time.Sleep(timeDurationToSleep * time.Second)
 
 		}
@@ -329,7 +329,7 @@ func (service *transactionService) updateBalancesIteration(updateType AddressBal
 			return err
 		}
 		if len(txs) == 0 {
-			fmt.Println("[updateBalancesIteration][no transactions to update balance was found]")
+			log.Println("[updateBalancesIteration][no transactions to update balance was found]")
 			return nil
 		}
 		txIdToAttachmentTime := make(map[int32]decimal.Decimal)
@@ -515,7 +515,7 @@ func (service *transactionService) updateBalancesIteration(updateType AddressBal
 			addItemToUniqueArray(currencyHashUniqueHelperMap, &currencyHashUniqueArray, serviceData.MintingCurrencyHash)
 			btTokenBalance := newTokenBalance(serviceData.MintingCurrencyHash, serviceData.ReceiverAddress)
 			key := btTokenBalance.toString()
-			fmt.Println(serviceData.MintingAmount.String())
+			log.Println(serviceData.MintingAmount.String())
 			if txIdToIsRegularBalanceAmount[baseTxIdToTxId[serviceData.BaseTransactionId]] {
 				addressBalanceDiffMap[key] = addressBalanceDiffMap[key].Add(serviceData.MintingAmount)
 			}
@@ -731,7 +731,7 @@ func (service *transactionService) cleanUnindexedTransactionIteration() error {
 	currTime := time.Now()
 	diffTimeInHours := currTime.Sub(service.serviceUpTime).Hours()
 	if diffTimeInHours < deleteTxDelayInHours {
-		fmt.Println("[cleanUnindexedTransactionIteration][skip delete, time to start is not upon us]")
+		log.Println("[cleanUnindexedTransactionIteration][skip delete, time to start is not upon us]")
 		return nil
 	}
 	err = dbProvider.DB.Transaction(func(dbTransaction *gorm.DB) error {
@@ -757,7 +757,7 @@ func (service *transactionService) cleanUnindexedTransactionIteration() error {
 			return err
 		}
 		if len(txs) == 0 {
-			fmt.Println("[cleanUnindexedTransactionIteration][no transactions to delete was found]")
+			log.Println("[cleanUnindexedTransactionIteration][no transactions to delete was found]")
 			return nil
 		}
 		var newTxAppState entities.AppState
@@ -768,7 +768,7 @@ func (service *transactionService) cleanUnindexedTransactionIteration() error {
 
 		txs = make([]entities.Transaction, 0)
 		if len(txs) == 0 {
-			fmt.Println("[cleanUnindexedTransactionIteration][no transactions to delete was found]")
+			log.Println("[cleanUnindexedTransactionIteration][no transactions to delete was found]")
 			return nil
 		}
 
@@ -927,7 +927,7 @@ func (service *transactionService) syncNewTransactions(maxRetries uint8) {
 	for {
 		iteration = iteration + 1
 		dtStart := time.Now()
-		fmt.Println("[syncNewTransactions][iteration start] " + strconv.Itoa(iteration))
+		log.Println("[syncNewTransactions][iteration start] " + strconv.Itoa(iteration))
 		for {
 			err := service.syncNewTransactionsIteration(maxTransactionsInSync, &includeUnindexed, service.currentFullnodeUrl)
 			if err != nil {
@@ -945,13 +945,13 @@ func (service *transactionService) syncNewTransactions(maxRetries uint8) {
 
 		}
 
-		fmt.Println("[syncNewTransactions][iteration end] " + strconv.Itoa(iteration))
+		log.Println("[syncNewTransactions][iteration end] " + strconv.Itoa(iteration))
 		dtEnd := time.Now()
 		diff := dtEnd.Sub(dtStart)
 		diffInSeconds := diff.Seconds()
 		if diffInSeconds < interval && diffInSeconds > 0 && includeUnindexed {
 			timeDurationToSleep := time.Duration(interval - diffInSeconds)
-			fmt.Println("[syncNewTransactions][sleeping for] ", timeDurationToSleep)
+			log.Println("[syncNewTransactions][sleeping for] ", timeDurationToSleep)
 			time.Sleep(timeDurationToSleep * time.Second)
 
 		}
@@ -1100,7 +1100,7 @@ func (service *transactionService) monitorTransactions(maxRetries uint8) {
 	for {
 		iteration++
 		dtStart := time.Now()
-		fmt.Println("[monitorTransactions][iteration start] " + strconv.Itoa(iteration))
+		log.Println("[monitorTransactions][iteration start] " + strconv.Itoa(iteration))
 
 		for {
 			err := service.monitorTransactionIteration(service.currentFullnodeUrl)
@@ -1118,7 +1118,7 @@ func (service *transactionService) monitorTransactions(maxRetries uint8) {
 				break
 			}
 		}
-		fmt.Println("[monitorTransactions][iteration end] " + strconv.Itoa(iteration))
+		log.Println("[monitorTransactions][iteration end] " + strconv.Itoa(iteration))
 		dtEnd := time.Now()
 		diff := dtEnd.Sub(dtStart)
 		diffInSeconds := diff.Seconds()
@@ -1134,7 +1134,7 @@ func (service *transactionService) monitorTransactions(maxRetries uint8) {
 func (service *transactionService) monitorTransactionIteration(fullnodeUrl string) error {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("[monitorTransactionIteration][error] ")
+			log.Println("[monitorTransactionIteration][error] ")
 		}
 	}()
 
@@ -1416,7 +1416,7 @@ func (service *transactionService) insertBaseTransactionsInputsOutputs(txHashToT
 				eibt := entities.NewEventInputBaseTransaction(&baseTransaction, txId)
 				eibtsToBeSaved = append(eibtsToBeSaved, eibt)
 			default:
-				fmt.Println("Unknown base transaction name: ", baseTransaction.Name)
+				log.Println("[insertBaseTransactionsInputsOutputs]Unknown base transaction name: ", baseTransaction.Name)
 			}
 		}
 
