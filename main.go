@@ -86,6 +86,12 @@ func verifyAppStates() {
 	if appStateMonitorTransactionRes.Error != nil {
 		panic(appStateMonitorTransactionRes.Error)
 	}
+
+	appStateSharedLockMonitoredTransaction := entities.AppState{Name: entities.SharedLockMonitoredTransaction}
+	appStateSharedLockMonitoredTransactionRes := dbprovider.DB.Where("name = ?", entities.SharedLockMonitoredTransaction).FirstOrCreate(&appStateSharedLockMonitoredTransaction)
+	if appStateSharedLockMonitoredTransactionRes.Error != nil {
+		panic(appStateMonitorTransactionRes.Error)
+	}
 }
 
 func verifyNativeCurrencyHash() {

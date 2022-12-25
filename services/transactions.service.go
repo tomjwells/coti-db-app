@@ -300,7 +300,7 @@ func (service *transactionService) updateBalancesIteration(updateType AddressBal
 	}
 	err := dbProvider.DB.Transaction(func(dbTransaction *gorm.DB) (err error) {
 		var appState entities.AppState
-		err = dbTransaction.Clauses(clause.Locking{Strength: "UPDATE"}).Where("name = ?", entities.UpdateBalances).First(&appState).Error
+		err = dbTransaction.Clauses(clause.Locking{Strength: "UPDATE"}).Where("name = ?", entities.SharedLockMonitoredTransaction).First(&appState).Error
 		if err != nil {
 			return err
 		}
@@ -1148,7 +1148,7 @@ func (service *transactionService) monitorTransactionIteration(fullnodeUrl strin
 	err := dbProvider.DB.Transaction(func(dbTransaction *gorm.DB) error {
 		// get all indexed transaction or with status attached to dag from db
 		var appState entities.AppState
-		err := dbTransaction.Clauses(clause.Locking{Strength: "UPDATE"}).Where("name = ?", entities.MonitorTransaction).First(&appState).Error
+		err := dbTransaction.Clauses(clause.Locking{Strength: "UPDATE"}).Where("name = ?", entities.SharedLockMonitoredTransaction).First(&appState).Error
 		if err != nil {
 			return err
 		}
