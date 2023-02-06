@@ -324,7 +324,7 @@ func (service *transactionService) updateBalancesIteration(updateType AddressBal
 		} else if updateType == RegularBalanceUpdate {
 			query = "isProcessed = 0 AND transactionConsensusUpdateTime IS NOT NULL AND type <> 'ZeroSpend' "
 		}
-		err = dbTransaction.Where(query).Limit(3000).Find(&txs).Error
+		err = dbTransaction.Where(query).Limit(1500).Find(&txs).Error
 		if err != nil {
 			return err
 		}
