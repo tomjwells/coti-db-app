@@ -14,6 +14,10 @@ COTI DB-App
 
 ---
 
+## Purpose of this Fork
+
+I need ARM-compatible Docker images as the standard AMD Docker images will not run on my node.
+
 ## What is Coti Db-App?
 
 Coti Db-App is a component developed by Coti that synchronizes the blockchain state and transaction into a relational
