@@ -16,7 +16,7 @@ COTI DB-App
 
 ## Purpose of this Fork
 
-I need ARM-compatible Docker images as the standard AMD Docker images will not run on my node.
+I need ARM-compatible Docker images as the standard AMD Docker images will not run on my machine.
 
 ## What is Coti Db-App?
 
