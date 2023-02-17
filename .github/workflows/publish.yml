@@ -6,8 +6,8 @@ on: push
 
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: tomjwells/coti-db-app
+#   REGISTRY: ghcr.io
+  IMAGE_NAME: atomnode/coti-db-app
 
 jobs:
   build:
